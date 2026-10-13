@@ -89,5 +89,42 @@ app.post('/api/customers', async (req, res) => {
     }
 });
 
+app.post('/api/customers/:id/sharpenings', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { hollow, sharpened_at, notes, price } = req.body;
+
+        if (!hollow) {
+            return res.status(400).json({ error: 'Hollow is required' });
+        }
+
+        const result = await pool.query(
+            `INSERT INTO sharpenings (customer_id, hollow, sharpened_at, notes, price)
+            VALUES ($1, $2, COALESCE($3, CURRENT_DATE), $4, $5)
+            RETURNING *`,
+            [id, hollow, sharpened_at, notes, price]
+        );
+        res.status(201).json(result.rows[0]);
+    } catch (error) {
+        if (error.code === '23503') {
+            return res.status(404).json({ error: 'Customer not found' }); 
+        }
+        console.error(error);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+});
+
+app.get('/api/customers/:id/sharpenings', async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT * FROM sharpenings WHERE customer_id = $1 ORDER BY sharpened_at DESC, id DESC',
+            [req.params.id]
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+});
 
 start();
