@@ -12,8 +12,9 @@ const pool = new Pool({
 
 const HOLLOWS = ['3/8', '7/16', '1/2', '9/16', '5/8', '11/16', '3/4'];
 
-const SHARPENING_COLUMNS =
-    'id, customer_id, sharpened_at::text AS sharpened_at, hollow, notes, price';
+const SHARPENING_COLUMNS = `
+    id, customer_id, TO_CHAR(sharpened_at, 'DD/MM/YYYY') AS sharpened_at, hollow, notes, price
+`;
 
 async function initDatabase() {
     await pool.query(`
