@@ -10,6 +10,11 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
+const HOLLOWS = ['3/8', '7/16', '1/2', '9/16', '5/8', '11/16', '3/4'];
+
+const SHARPENING_COLUMNS =
+    'id, customer_id, sharpened_at::text AS sharpened_at, hollow, notes, price';
+
 async function initDatabase() {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS customers (
@@ -94,14 +99,16 @@ app.post('/api/customers/:id/sharpenings', async (req, res) => {
         const { id } = req.params;
         const { hollow, sharpened_at, notes, price } = req.body;
 
-        if (!hollow) {
-            return res.status(400).json({ error: 'Hollow is required' });
+        if (!HOLLOWS.includes(hollow)) {
+            return res.status(400).json({
+                error: `Hollow must be one of: ${HOLLOWS.join(', ')}`
+            });
         }
 
         const result = await pool.query(
             `INSERT INTO sharpenings (customer_id, hollow, sharpened_at, notes, price)
             VALUES ($1, $2, COALESCE($3, CURRENT_DATE), $4, $5)
-            RETURNING *`,
+            RETURNING ${SHARPENING_COLUMNS}`,
             [id, hollow, sharpened_at, notes, price]
         );
         res.status(201).json(result.rows[0]);
@@ -117,8 +124,47 @@ app.post('/api/customers/:id/sharpenings', async (req, res) => {
 app.get('/api/customers/:id/sharpenings', async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT * FROM sharpenings WHERE customer_id = $1 ORDER BY sharpened_at DESC, id DESC',
+            `SELECT ${SHARPENING_COLUMNS} FROM sharpenings WHERE customer_id = $1 ORDER BY sharpened_at DESC, id DESC`,
             [req.params.id]
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+});
+
+app.get('/api/hollows', (req, res) => {
+    res.json(HOLLOWS);
+});
+
+// Most common hollows overall
+app.get('/api/stats/hollows', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT hollow, COUNT(*)::int AS count
+             FROM sharpenings
+             GROUP BY hollow
+             ORDER BY count DESC, hollow`
+        );
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+});
+
+// Hollow counts broken down by position
+app.get('/api/stats/hollows-by-position', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT COALESCE(c.position, 'Unknown') AS position,
+                    s.hollow,
+                    COUNT(*)::int AS count
+             FROM sharpenings s
+             JOIN customers c ON c.id = s.customer_id
+             GROUP BY COALESCE(c.position, 'Unknown'), s.hollow
+             ORDER BY position, count DESC, s.hollow`
         );
         res.json(result.rows);
     } catch (error) {
