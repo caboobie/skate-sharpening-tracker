@@ -174,4 +174,20 @@ app.get('/api/stats/hollows-by-position', async (req, res) => {
     }
 });
 
+app.delete('/api/sharpenings/:id', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `DELETE FROM sharpenings WHERE id = $1 RETURNING ${SHARPENING_COLUMNS}`,
+            [req.params.id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Sharpening not found' });
+        }
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+});
+
 start();
