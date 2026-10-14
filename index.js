@@ -16,6 +16,10 @@ const SHARPENING_COLUMNS = `
     id, customer_id, TO_CHAR(sharpened_at, 'DD/MM/YYYY') AS sharpened_at, hollow, notes, price
 `;
 
+const CUSTOMER_COLUMNS = `
+    id, name, team, position, notes, created_at
+`;
+
 async function initDatabase() {
     await pool.query(`
         CREATE TABLE IF NOT EXISTS customers (
@@ -182,6 +186,47 @@ app.delete('/api/sharpenings/:id', async (req, res) => {
         );
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Sharpening not found' });
+        }
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+});
+
+app.delete('/api/customers/:id', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `DELETE FROM customers WHERE id = $1 RETURNING ${CUSTOMER_COLUMNS}`,
+            [req.params.id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Customer not found' });
+        }
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+});
+
+app.put('/api/customers/:id', async (req, res) => {
+    try {
+        const { name, team, position, notes } = req.body;
+
+        if (!name) {
+            return res.status(400).json({ error: 'Name is required' });
+        }
+
+        const result = await pool.query(
+            `UPDATE customers 
+            SET name = $1, team = $2, position = $3, notes = $4 WHERE id = $5 
+            RETURNING ${CUSTOMER_COLUMNS}`,
+            [name, team, position, notes, req.params.id]
+        );
+        
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Customer not found' });
         }
         res.json(result.rows[0]);
     } catch (error) {
