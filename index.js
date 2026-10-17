@@ -14,7 +14,8 @@ const pool = new Pool({
   ssl: { rejectUnauthorized: false }
 });
 
-const HOLLOWS = ['3/8', '7/16', '1/2', '9/16', '5/8', '11/16', '3/4'];
+const HOLLOWS = [
+    '3/8', '3/8 FIRE', '7/16', '1/2', '1/2 FIRE', '9/16', '5/8', '11/16', '3/4'];
 
 const SHARPENING_COLUMNS = `
     id, customer_id, TO_CHAR(sharpened_at, 'DD/MM/YYYY') AS sharpened_at, hollow, notes, price
