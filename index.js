@@ -4,7 +4,11 @@ const { Pool } = require('pg');
 const app = express();
 const cors = require('cors');
 app.use(express.json());
-app.use(cors());
+const allowOrigins = (process.env.FRONTEND_URL || '')
+    .split(',')
+    .map(url => url.trim())
+    .filter(Boolean);
+app.use(cors({ origin: allowOrigins }));
 
 
 
