@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const { Pool } = require('pg');
-
 const app = express();
 const cors = require('cors');
 app.use(express.json());
@@ -18,7 +17,7 @@ const HOLLOWS = [
     '3/8', '3/8 FIRE', '7/16', '1/2', '1/2 FIRE', '9/16', '5/8', '11/16', '3/4'];
 
 const SHARPENING_COLUMNS = `
-    id, customer_id, TO_CHAR(sharpened_at, 'DD/MM/YYYY') AS sharpened_at, hollow, notes, price
+    id, customer_id, TO_CHAR(sharpened_at, 'DD/MM/YYYY') AS sharpened_on, hollow, notes, price
 `;
 
 const CUSTOMER_COLUMNS = `
@@ -44,7 +43,7 @@ async function initDatabase() {
                     sharpened_at DATE NOT NULL DEFAULT CURRENT_DATE,
                     hollow TEXT NOT NULL,
                     notes TEXT,
-                    Price NUMERIC(6, 2)
+                    price NUMERIC(6, 2)
                     )
                     `);
 
@@ -134,7 +133,7 @@ app.post('/api/customers/:id/sharpenings', async (req, res) => {
 app.get('/api/customers/:id/sharpenings', async (req, res) => {
     try {
         const result = await pool.query(
-            `SELECT ${SHARPENING_COLUMNS} FROM sharpenings WHERE customer_id = $1 ORDER BY sharpened_at DESC, id DESC`,
+            `SELECT ${SHARPENING_COLUMNS} FROM sharpenings WHERE customer_id = $1 ORDER BY sharpenings.sharpened_at DESC, id DESC`,
             [req.params.id]
         );
         res.json(result.rows);
@@ -230,6 +229,22 @@ app.put('/api/customers/:id', async (req, res) => {
             [name, team, position, notes, req.params.id]
         );
         
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Customer not found' });
+        }
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: 'Something went wrong' });
+    }
+});
+
+app.get('/api/customers/:id', async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT ${CUSTOMER_COLUMNS} FROM customers WHERE id = $1`,
+            [req.params.id]
+        );
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Customer not found' });
         }
