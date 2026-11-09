@@ -74,6 +74,14 @@ async function start() {
     });
 }
 
+app.use('/api', (req, res, next) => {
+    const key = process.env.API_KEY;
+    if (!key || req.headers[`x-api-key`] !== key) {
+        return res.status(401).json({ error: 'Unauthorized' });
+    }
+    next();
+});
+
 app.get('/api/customers', async (req, res) => {
     try {
         const search = req.query.search || '';
