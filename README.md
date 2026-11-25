@@ -10,6 +10,37 @@ A REST API for tracking ice skate sharpenings, including which hollow each custo
 
 The React front end that consumes this API lives in [caboobie/skate-tracker-frontend](https://github.com/caboobie/skate-tracker-frontend).
 
+## Architecture
+
+```mermaid
+flowchart LR
+    A["React frontend<br/>(skate-tracker-frontend)"] -- "HTTPS + x-api-key header" --> B["Express API<br/>(index.js)"]
+    B -- "pg Pool (SSL)" --> C[("PostgreSQL<br/>on Railway")]
+```
+
+## Database schema
+
+```mermaid
+erDiagram
+    customers ||--o{ sharpenings : "has (ON DELETE CASCADE)"
+    customers {
+        SERIAL id PK
+        TEXT name "NOT NULL"
+        TEXT team
+        TEXT position
+        TEXT notes
+        TIMESTAMPTZ created_at "DEFAULT NOW()"
+    }
+    sharpenings {
+        SERIAL id PK
+        INTEGER customer_id FK "NOT NULL"
+        DATE sharpened_at "NOT NULL, DEFAULT CURRENT_DATE"
+        TEXT hollow "NOT NULL"
+        TEXT notes
+        NUMERIC price "NUMERIC(6,2)"
+    }
+```
+
 ## Setup
 
 1. Install dependencies:
